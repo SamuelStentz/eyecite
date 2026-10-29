@@ -1,6 +1,8 @@
 from unittest import TestCase
+from unittest.mock import patch
 
 from eyecite import get_citations
+from eyecite.helpers import get_court_by_paren
 
 
 class RegexesTest(TestCase):
@@ -40,3 +42,16 @@ class RegexesTest(TestCase):
         for key in samples:
             eyecite_result = get_citations(key)
             self.assertEqual(eyecite_result[0].metadata.court, samples[key])
+
+    def test_court_lookup_match_precedence(self):
+        courts = (
+            ("abcfirst", "prefix1"),
+            ("abc", "exact1"),
+            ("abc", "exact2"),
+            ("abclast", "prefix2"),
+        )
+        with patch("eyecite.helpers._NORMALIZED_COURTS", courts):
+            self.assertEqual(get_court_by_paren("A.B.C."), "exact1")
+            self.assertEqual(get_court_by_paren("A.B."), "prefix2")
+            self.assertIsNone(get_court_by_paren("..."))
+            self.assertIsNone(get_court_by_paren("unknown"))

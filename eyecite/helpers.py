@@ -45,6 +45,12 @@ BACKWARD_SEEK = 28  # Median case name length in the CL db is 28 (2016-02-26)
 # call to prepare the text to be matched.
 MAX_MATCH_CHARS = 300
 
+# Preserve database order: first exact match wins, otherwise last prefix match.
+_NORMALIZED_COURTS = tuple(
+    (re.sub(r"[^\w]", "", court["citation_string"]).lower(), court["id"])
+    for court in courts
+)
+
 
 def get_court_by_paren(paren_string: str) -> str | None:
     """Takes the citation string, usually something like "2d Cir", and maps
@@ -60,17 +66,15 @@ def get_court_by_paren(paren_string: str) -> str | None:
 
     court_code = None
     if court_str:
-        for court in courts:
-            s = re.sub(r"[^\w]", "", court["citation_string"]).lower()
-
+        for s, court_id in _NORMALIZED_COURTS:
             # Check for an exact match first
             if s == court_str:
-                return str(court["id"])
+                return str(court_id)
 
             # If no exact match, try to record a startswith match for possible
             # eventual return
             if s.startswith(court_str):
-                court_code = court["id"]
+                court_code = court_id
 
         return court_code
 
